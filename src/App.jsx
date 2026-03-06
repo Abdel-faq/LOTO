@@ -3,26 +3,53 @@ import { useLoto } from './hooks/useLoto';
 import './index.css';
 
 const App = () => {
-  const [mode, setMode] = useState('loto'); // 'loto' (90) or 'bingo' (60)
-  const [voiceType, setVoiceType] = useState('female');
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-
-  // Custom states that the user can edit
-  const [config, setConfig] = useState({
-    drawNumber: 1,
-    drawType: '1 Ligne',
-    prize: 'Gros lot à gagner',
-    clubLogo: '',
-    partners: ['', ''],
-    bgColor: '#0f172a',
-    lastNumColor: '#f59e0b',
-    gridDrawnColor: '#00d2ff',
-    gridUndrawnColor: 'rgba(255, 255, 255, 0.05)',
-    autoInterval: 5,
-    drawPrep: [] // List of { number: 1, type: '1 Ligne', prize: '...' }
+  // State avec chargement initial depuis localStorage
+  const [config, setConfig] = useState(() => {
+    const saved = localStorage.getItem('loto_config');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Error loading config", e);
+      }
+    }
+    return {
+      drawNumber: 1,
+      drawType: '1 Ligne',
+      prize: 'Gros lot à gagner',
+      clubLogo: '',
+      partners: ['', ''],
+      bgColor: '#0f172a',
+      lastNumColor: '#f59e0b',
+      gridDrawnColor: '#00d2ff',
+      gridUndrawnColor: 'rgba(255, 255, 255, 0.05)',
+      autoInterval: 5,
+      drawPrep: []
+    };
   });
 
+  const [mode, setMode] = useState(() => localStorage.getItem('loto_mode') || 'loto');
+  const [voiceType, setVoiceType] = useState(() => localStorage.getItem('loto_voice') || 'female');
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
+
+  // Sauvegarde auto de la config
+  useEffect(() => {
+    localStorage.setItem('loto_config', JSON.stringify(config));
+  }, [config]);
+
+  useEffect(() => {
+    localStorage.setItem('loto_mode', mode);
+  }, [mode]);
+
+  useEffect(() => {
+    localStorage.setItem('loto_voice', voiceType);
+  }, [voiceType]);
+
+  // Appliquer la couleur de fond au body
+  useEffect(() => {
+    document.body.style.setProperty('--dynamic-bg', config.bgColor);
+  }, [config.bgColor]);
 
   const maxNumbers = mode === 'loto' ? 90 : 75;
   const { drawnNumbers, lastDrawn, drawNumber, undoDraw, reset, announceNumber, unlockAudio } = useLoto(maxNumbers);

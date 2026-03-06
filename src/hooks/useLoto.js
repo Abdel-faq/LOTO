@@ -7,12 +7,27 @@ export const useLoto = (initialMaxNumber = 90) => {
   const [isFinished, setIsFinished] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
 
-  // Update maxNumber when initialMaxNumber changes
+  // Load from localStorage on mount
   useEffect(() => {
-    setMaxNumber(initialMaxNumber);
-    reset();
-  }, [initialMaxNumber]);
+    const saved = localStorage.getItem('loto_state');
+    if (saved) {
+      try {
+        const { numbers, last } = JSON.parse(saved);
+        setDrawnNumbers(numbers || []);
+        setLastDrawn(last || null);
+      } catch (e) {
+        console.error("Error loading loto state", e);
+      }
+    }
+  }, []);
 
+  // Save to localStorage when state changes
+  useEffect(() => {
+    localStorage.setItem('loto_state', JSON.stringify({
+      numbers: drawnNumbers,
+      last: lastDrawn
+    }));
+  }, [drawnNumbers, lastDrawn]);
 
   const drawNumber = useCallback(() => {
     if (drawnNumbers.length >= maxNumber) {
@@ -21,14 +36,15 @@ export const useLoto = (initialMaxNumber = 90) => {
     }
 
     let nextNumber;
+    let attempts = 0;
     do {
       nextNumber = Math.floor(Math.random() * maxNumber) + 1;
-    } while (drawnNumbers.includes(nextNumber));
+      attempts++;
+    } while (drawnNumbers.includes(nextNumber) && attempts < 1000);
 
-    setDrawnNumbers(prev => {
-      const newList = [...prev, nextNumber];
-      return newList;
-    });
+    if (attempts >= 1000) return null;
+
+    setDrawnNumbers(prev => [...prev, nextNumber]);
     setLastDrawn(nextNumber);
     return nextNumber;
   }, [drawnNumbers, maxNumber]);
@@ -48,39 +64,46 @@ export const useLoto = (initialMaxNumber = 90) => {
 
 
   const reset = useCallback(() => {
-    setDrawnNumbers([]);
-    setLastDrawn(null);
-    setIsFinished(false);
+    if (window.confirm("Êtes-vous sûr de vouloir tout remettre à zéro ?")) {
+      setDrawnNumbers([]);
+      setLastDrawn(null);
+      setIsFinished(false);
+      localStorage.removeItem('loto_state');
+    }
   }, []);
 
   const announceNumber = useCallback((number, voiceType = 'female') => {
     if (!number) return;
 
-    // Explicitly check for audio unlock (required for some browsers/devices like iPad)
+    // Trigger a silent utterance to unlock if needed
     if (!audioUnlocked) {
-      // Trigger a silent utterance to unlock
       const unlockUtterance = new SpeechSynthesisUtterance("");
       window.speechSynthesis.speak(unlockUtterance);
       setAudioUnlocked(true);
     }
 
-    // Cancel any ongoing speech
     window.speechSynthesis.cancel();
 
     const utterance = new SpeechSynthesisUtterance(number.toString());
     utterance.lang = 'fr-FR';
+    utterance.rate = 0.9; // Slightly slower for better clarity
 
-    // Try to find a specific voice if requested
     const voices = window.speechSynthesis.getVoices();
     const frVoices = voices.filter(v => v.lang.startsWith('fr'));
 
     if (frVoices.length > 0) {
-      // Simple heuristic for male/female based on voice name
-      const targetVoice = frVoices.find(v =>
-        voiceType === 'female' ? /Hortense|Julie|Renée/i.test(v.name) : /Paul|Mathieu/i.test(v.name)
-      ) || frVoices[0];
+      // Improved matching for iOS/macOS and common French voices
+      let targetVoice;
 
-      utterance.voice = targetVoice;
+      if (voiceType === 'female') {
+        targetVoice = frVoices.find(v => /Amélie|Marie|Julie|Hortense|Renée|Sébastien/i.test(v.name) && !/male/i.test(v.name));
+        // Fallback for female if not found
+        if (!targetVoice) targetVoice = frVoices.find(v => /female|femme/i.test(v.name));
+      } else {
+        targetVoice = frVoices.find(v => /Thomas|Paul|Mathieu|Pierre|Jacques/i.test(v.name) || /male/i.test(v.name));
+      }
+
+      utterance.voice = targetVoice || frVoices[0];
     }
 
     window.speechSynthesis.speak(utterance);
@@ -88,8 +111,8 @@ export const useLoto = (initialMaxNumber = 90) => {
 
   const unlockAudio = useCallback(() => {
     if (!audioUnlocked) {
-      const utterance = new SpeechSynthesisUtterance("Lancement");
-      utterance.volume = 0; // Silent but triggers interaction
+      const utterance = new SpeechSynthesisUtterance("Prêt");
+      utterance.volume = 0;
       window.speechSynthesis.speak(utterance);
       setAudioUnlocked(true);
     }
@@ -98,7 +121,9 @@ export const useLoto = (initialMaxNumber = 90) => {
   // Ensure voices are loaded
   useEffect(() => {
     const handleVoices = () => window.speechSynthesis.getVoices();
-    window.speechSynthesis.onvoiceschanged = handleVoices;
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = handleVoices;
+    }
     handleVoices();
   }, []);
 
