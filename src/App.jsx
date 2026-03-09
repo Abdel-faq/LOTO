@@ -36,10 +36,7 @@ const App = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Sauvegarde auto de la config
-  useEffect(() => {
-    localStorage.setItem('loto_config', JSON.stringify(config));
-  }, [config]);
+  // Sauvegarde manuelle de la config (supprimé useEffect auto-save)
 
   useEffect(() => {
     localStorage.setItem('loto_mode', mode);
@@ -90,6 +87,11 @@ const App = () => {
   }, [config.currentPrepIdx, config.drawPrep, config.useManualInfo]);
 
   const handleNextLot = () => {
+    if (config.drawPrep.length === 0) {
+      alert("Aucun lot n'est défini dans le tableau de préparation !");
+      return;
+    }
+
     const nextIdx = config.currentPrepIdx + 1;
     const nextDraw = config.drawPrep[nextIdx];
 
@@ -100,16 +102,10 @@ const App = () => {
         drawNumber: nextDraw.number,
         drawType: nextDraw.type,
         prize: nextDraw.prize,
-        useManualInfo: false // Return to following the table sequence
+        useManualInfo: false
       }));
     } else {
-      // Fallback if no more entries: just increment the number if it's numeric
-      const currentNum = parseInt(config.drawNumber);
-      setConfig(prev => ({
-        ...prev,
-        drawNumber: isNaN(currentNum) ? prev.drawNumber : currentNum + 1,
-        useManualInfo: true
-      }));
+      alert("Plus de lots dans le tableau de préparation !");
     }
   };
 
@@ -158,6 +154,8 @@ const App = () => {
 
   const saveConfig = (e) => {
     e.preventDefault();
+    localStorage.setItem('loto_config', JSON.stringify(config));
+    alert("Configurations sauvegardées !");
     setIsAdminOpen(false);
   };
 
@@ -405,7 +403,8 @@ const App = () => {
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
-                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>FERMER</button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>ENREGISTRER</button>
+                <button type="button" className="btn" style={{ flex: 1, backgroundColor: '#4b5563', color: 'white' }} onClick={() => setIsAdminOpen(false)}>ANNULER</button>
               </div>
             </form>
           </div>
