@@ -26,7 +26,8 @@ const App = () => {
       gridUndrawnColor: 'rgba(255, 255, 255, 0.05)',
       autoInterval: 5,
       drawPrep: [],
-      useManualInfo: false
+      useManualInfo: false,
+      currentPrepIdx: 0
     };
   });
 
@@ -74,8 +75,10 @@ const App = () => {
 
   // Sync info card with drawPrep if available
   useEffect(() => {
-    if (config.useManualInfo) return;
-    const currentDraw = config.drawPrep.find(d => parseInt(d.number) === drawnNumbers.length + 1);
+    if (config.useManualInfo || config.drawPrep.length === 0) return;
+    
+    // Initial load: show the current (or first) lot from prep table
+    const currentDraw = config.drawPrep[config.currentPrepIdx];
     if (currentDraw) {
       setConfig(prev => ({
         ...prev,
@@ -84,14 +87,30 @@ const App = () => {
         prize: currentDraw.prize
       }));
     }
-  }, [drawnNumbers.length, config.drawPrep, config.useManualInfo]);
+  }, [config.currentPrepIdx, config.drawPrep, config.useManualInfo]);
 
   const handleNextLot = () => {
-    setConfig(prev => ({
-      ...prev,
-      drawNumber: parseInt(prev.drawNumber) + 1,
-      useManualInfo: true
-    }));
+    const nextIdx = config.currentPrepIdx + 1;
+    const nextDraw = config.drawPrep[nextIdx];
+
+    if (nextDraw) {
+      setConfig(prev => ({
+        ...prev,
+        currentPrepIdx: nextIdx,
+        drawNumber: nextDraw.number,
+        drawType: nextDraw.type,
+        prize: nextDraw.prize,
+        useManualInfo: false // Return to following the table sequence
+      }));
+    } else {
+      // Fallback if no more entries: just increment the number if it's numeric
+      const currentNum = parseInt(config.drawNumber);
+      setConfig(prev => ({
+        ...prev,
+        drawNumber: isNaN(currentNum) ? prev.drawNumber : currentNum + 1,
+        useManualInfo: true
+      }));
+    }
   };
 
   const handleSurpriseLot = () => {
@@ -221,7 +240,11 @@ const App = () => {
         <button className="btn" style={{ background: '#6366f1', color: 'white' }} onClick={handleUndo}>RETOUR</button>
         <button className="btn" style={{ background: '#ec4899', color: 'white' }} onClick={handleNextLot}>LOT SUIVANT</button>
         <button className="btn" style={{ background: '#8b5cf6', color: 'white' }} onClick={handleSurpriseLot}>LOT SURPRISE</button>
-        <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { setIsAutoPlaying(false); reset(); setConfig(prev => ({ ...prev, useManualInfo: false })); }}>RAZ</button>
+        <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { 
+          setIsAutoPlaying(false); 
+          reset(); 
+          setConfig(prev => ({ ...prev, useManualInfo: false, currentPrepIdx: 0 })); 
+        }}>RAZ</button>
       </div>
 
 
@@ -290,7 +313,7 @@ const App = () => {
 
               <div className="input-group">
                 <label>Numéro en cours (manuel)</label>
-                <input type="number" value={config.drawNumber} onChange={e => setConfig({ ...config, drawNumber: e.target.value })} />
+                <input type="text" value={config.drawNumber} onChange={e => setConfig({ ...config, drawNumber: e.target.value })} />
               </div>
               <div className="input-group">
                 <label>Type de tirage (manuel)</label>
@@ -331,7 +354,7 @@ const App = () => {
                     {config.drawPrep.map((prep, idx) => (
                       <tr key={idx}>
                         <td>
-                          <input type="number" value={prep.number} onChange={e => {
+                          <input type="text" value={prep.number} onChange={e => {
                             const newPrep = [...config.drawPrep];
                             newPrep[idx].number = e.target.value;
                             setConfig({ ...config, drawPrep: newPrep });
