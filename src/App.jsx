@@ -18,13 +18,15 @@ const App = () => {
       drawType: '1 Ligne',
       prize: 'Gros lot à gagner',
       clubLogo: '',
-      partners: ['', ''],
+      partners: [''],
       bgColor: '#0f172a',
+      gridBgColor: 'rgba(30, 41, 59, 0.7)',
       lastNumColor: '#f59e0b',
       gridDrawnColor: '#00d2ff',
       gridUndrawnColor: 'rgba(255, 255, 255, 0.05)',
       autoInterval: 5,
-      drawPrep: []
+      drawPrep: [],
+      useManualInfo: false
     };
   });
 
@@ -72,6 +74,7 @@ const App = () => {
 
   // Sync info card with drawPrep if available
   useEffect(() => {
+    if (config.useManualInfo) return;
     const currentDraw = config.drawPrep.find(d => parseInt(d.number) === drawnNumbers.length + 1);
     if (currentDraw) {
       setConfig(prev => ({
@@ -81,7 +84,22 @@ const App = () => {
         prize: currentDraw.prize
       }));
     }
-  }, [drawnNumbers.length, config.drawPrep]);
+  }, [drawnNumbers.length, config.drawPrep, config.useManualInfo]);
+
+  const handleNextLot = () => {
+    setConfig(prev => ({
+      ...prev,
+      drawNumber: parseInt(prev.drawNumber) + 1,
+      useManualInfo: true
+    }));
+  };
+
+  const handleSurpriseLot = () => {
+    setConfig(prev => ({
+      ...prev,
+      useManualInfo: true
+    }));
+  };
 
 
   const handleDraw = () => {
@@ -135,8 +153,7 @@ const App = () => {
         ))}
       </section>
 
-      {/* Grid Section */}
-      <section className="grid-section">
+      <section className="grid-section" style={{ backgroundColor: config.gridBgColor }}>
         {Array.from({ length: maxNumbers }, (_, i) => i + 1).map(num => {
           const isDrawn = drawnNumbers.includes(num);
           const isLast = lastDrawn === num;
@@ -145,7 +162,7 @@ const App = () => {
               key={num}
               className={`number-cell ${isDrawn ? 'drawn' : ''} ${isLast ? 'last-drawn' : ''}`}
               style={{
-                backgroundColor: isDrawn ? (isLast ? config.lastNumColor : config.gridDrawnColor) : config.gridUndrawnColor,
+                backgroundColor: isDrawn ? (isLast ? config.lastNumColor : config.gridDrawnColor) : (isLast ? 'transparent' : config.gridUndrawnColor),
                 color: isDrawn ? 'white' : 'var(--text-muted)',
                 borderColor: isLast ? config.lastNumColor : 'transparent'
               }}
@@ -188,9 +205,8 @@ const App = () => {
             {config.clubLogo ? <img src={config.clubLogo} alt="Club" /> : <span className="logo-placeholder">LOGO CLUB</span>}
           </div>
           <div className="logo-box">
-            <div style={{ display: 'flex', gap: '15px', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-              {config.partners[0] ? <img src={config.partners[0]} alt="Partner 1" /> : <span className="logo-placeholder">PARTENAIRE 1</span>}
-              {config.partners[1] ? <img src={config.partners[1]} alt="Partner 2" /> : config.partners[0] ? null : <span className="logo-placeholder">PARTENAIRE 2</span>}
+            <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
+              {config.partners[0] ? <img src={config.partners[0]} alt="Partner" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span className="logo-placeholder">PARTENAIRE</span>}
             </div>
           </div>
         </div>
@@ -203,7 +219,9 @@ const App = () => {
           {isAutoPlaying ? 'PAUSE' : 'PLAY'}
         </button>
         <button className="btn" style={{ background: '#6366f1', color: 'white' }} onClick={handleUndo}>RETOUR</button>
-        <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { setIsAutoPlaying(false); reset(); }}>RAZ</button>
+        <button className="btn" style={{ background: '#ec4899', color: 'white' }} onClick={handleNextLot}>LOT SUIVANT</button>
+        <button className="btn" style={{ background: '#8b5cf6', color: 'white' }} onClick={handleSurpriseLot}>LOT SURPRISE</button>
+        <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { setIsAutoPlaying(false); reset(); setConfig(prev => ({ ...prev, useManualInfo: false })); }}>RAZ</button>
       </div>
 
 
@@ -259,6 +277,10 @@ const App = () => {
                 <div className="input-group">
                   <label>Grille (Tiré)</label>
                   <input type="color" value={config.gridDrawnColor} onChange={e => setConfig({ ...config, gridDrawnColor: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Grille (Fond)</label>
+                  <input type="color" value={config.gridBgColor} onChange={e => setConfig({ ...config, gridBgColor: e.target.value })} />
                 </div>
                 <div className="input-group">
                   <label>Grille (Non Tiré)</label>
@@ -355,12 +377,8 @@ const App = () => {
                 <input type="file" accept="image/*" onChange={handleImageUpload('clubLogo')} />
               </div>
               <div className="input-group">
-                <label>Partenaire 1</label>
+                <label>Logo Partenaire</label>
                 <input type="file" accept="image/*" onChange={handleImageUpload('partners', 0)} />
-              </div>
-              <div className="input-group">
-                <label>Partenaire 2</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload('partners', 1)} />
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
