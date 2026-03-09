@@ -14,10 +14,6 @@ const App = () => {
       }
     }
     return {
-      drawNumber: 1,
-      drawType: '1 Ligne',
-      prize: 'Gros lot à gagner',
-      clubLogo: '',
       partners: [''],
       bgColor: '#0f172a',
       gridBgColor: 'rgba(30, 41, 59, 0.7)',
@@ -27,7 +23,10 @@ const App = () => {
       autoInterval: 5,
       drawPrep: [],
       useManualInfo: false,
-      currentPrepIdx: 0
+      currentPrepIdx: 0,
+      manualNumber: '1',
+      manualType: '1 Ligne',
+      manualPrize: ''
     };
   });
 
@@ -36,7 +35,7 @@ const App = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
 
-  // Sauvegarde manuelle de la config (supprimé useEffect auto-save)
+  // Sauvegarde manuelle de la config
 
   useEffect(() => {
     localStorage.setItem('loto_mode', mode);
@@ -70,21 +69,29 @@ const App = () => {
     return () => clearInterval(timer);
   }, [isAutoPlaying, drawNumber, announceNumber, voiceType, config.autoInterval]);
 
-  // Sync info card with drawPrep if available
-  useEffect(() => {
-    if (config.useManualInfo || config.drawPrep.length === 0) return;
+  // Identifie les infos à afficher (soit le tableau, soit le manuel)
+  const getDisplayInfo = () => {
+    if (config.useManualInfo) {
+      return {
+        number: config.manualNumber,
+        type: config.manualType,
+        prize: config.manualPrize
+      };
+    }
     
-    // Initial load: show the current (or first) lot from prep table
     const currentDraw = config.drawPrep[config.currentPrepIdx];
     if (currentDraw) {
-      setConfig(prev => ({
-        ...prev,
-        drawNumber: currentDraw.number,
-        drawType: currentDraw.type,
+      return {
+        number: currentDraw.number,
+        type: currentDraw.type,
         prize: currentDraw.prize
-      }));
+      };
     }
-  }, [config.currentPrepIdx, config.drawPrep, config.useManualInfo]);
+    
+    return { number: '-', type: '-', prize: '-' };
+  };
+
+  const displayInfo = getDisplayInfo();
 
   const handleNextLot = () => {
     if (config.drawPrep.length === 0) {
@@ -93,15 +100,10 @@ const App = () => {
     }
 
     const nextIdx = config.currentPrepIdx + 1;
-    const nextDraw = config.drawPrep[nextIdx];
-
-    if (nextDraw) {
+    if (nextIdx < config.drawPrep.length) {
       setConfig(prev => ({
         ...prev,
         currentPrepIdx: nextIdx,
-        drawNumber: nextDraw.number,
-        drawType: nextDraw.type,
-        prize: nextDraw.prize,
         useManualInfo: false
       }));
     } else {
@@ -196,15 +198,15 @@ const App = () => {
         <div className="info-card">
           <div className="info-line">
             <span className="info-label">Tirage N°</span>
-            <span className="info-value">{config.drawNumber}</span>
+            <span className="info-value">{displayInfo.number}</span>
           </div>
           <div className="info-line">
             <span className="info-label">Type de tirage</span>
-            <span className="info-value">{config.drawType}</span>
+            <span className="info-value">{displayInfo.type}</span>
           </div>
           <div className="info-line">
             <span className="info-label">Lot à gagner</span>
-            <span className="info-value">{config.prize}</span>
+            <span className="info-value">{displayInfo.prize}</span>
           </div>
         </div>
 
@@ -311,11 +313,11 @@ const App = () => {
 
               <div className="input-group">
                 <label>Numéro en cours (manuel)</label>
-                <input type="text" value={config.drawNumber} onChange={e => setConfig({ ...config, drawNumber: e.target.value })} />
+                <input type="text" value={config.manualNumber} onChange={e => setConfig({ ...config, manualNumber: e.target.value })} />
               </div>
               <div className="input-group">
                 <label>Type de tirage (manuel)</label>
-                <select value={config.drawType} onChange={e => setConfig({ ...config, drawType: e.target.value })}>
+                <select value={config.manualType} onChange={e => setConfig({ ...config, manualType: e.target.value })}>
                   <option>1 Ligne</option>
                   <option>2 Lignes</option>
                   <option>Carton Plein</option>
@@ -326,7 +328,7 @@ const App = () => {
               </div>
               <div className="input-group">
                 <label>Lot à gagner (manuel)</label>
-                <input type="text" value={config.prize} onChange={e => setConfig({ ...config, prize: e.target.value })} />
+                <input type="text" value={config.manualPrize} onChange={e => setConfig({ ...config, manualPrize: e.target.value })} />
               </div>
 
               <hr />
