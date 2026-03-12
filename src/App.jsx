@@ -5,15 +5,7 @@ import './index.css';
 const App = () => {
   // State avec chargement initial depuis localStorage
   const [config, setConfig] = useState(() => {
-    const saved = localStorage.getItem('loto_config');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error("Error loading config", e);
-      }
-    }
-    return {
+    const defaultConfig = {
       partners: [''],
       bgColor: '#0f172a',
       gridBgColor: 'rgba(30, 41, 59, 0.7)',
@@ -26,8 +18,20 @@ const App = () => {
       currentPrepIdx: 0,
       manualNumber: '1',
       manualType: '1 Ligne',
-      manualPrize: ''
+      manualPrize: '',
+      clubLogo: null
     };
+
+    const saved = localStorage.getItem('loto_config');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return { ...defaultConfig, ...parsed };
+      } catch (e) {
+        console.error("Error loading config", e);
+      }
+    }
+    return defaultConfig;
   });
 
   const [mode, setMode] = useState(() => localStorage.getItem('loto_mode') || 'loto');
@@ -220,13 +224,8 @@ const App = () => {
 
 
         <div className="footer-logos">
-          <div className="logo-box">
+          <div className="logo-box" style={{ width: '100%', height: '100%' }}>
             {config.clubLogo ? <img src={config.clubLogo} alt="Club" /> : <span className="logo-placeholder">LOGO CLUB</span>}
-          </div>
-          <div className="logo-box">
-            <div style={{ display: 'flex', height: '100%', width: '100%', alignItems: 'center', justifyContent: 'center' }}>
-              {config.partners[0] ? <img src={config.partners[0]} alt="Partner" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span className="logo-placeholder">PARTENAIRE</span>}
-            </div>
           </div>
         </div>
       </section>
@@ -243,7 +242,11 @@ const App = () => {
         <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { 
           setIsAutoPlaying(false); 
           reset(); 
-          setConfig(prev => ({ ...prev, useManualInfo: false, currentPrepIdx: 0 })); 
+          setConfig(prev => ({ 
+            ...prev, 
+            useManualInfo: false, 
+            currentPrepIdx: (prev.drawPrep && prev.currentPrepIdx < prev.drawPrep.length - 1) ? prev.currentPrepIdx + 1 : prev.currentPrepIdx 
+          })); 
         }}>RAZ</button>
       </div>
 
@@ -394,14 +397,9 @@ const App = () => {
               </div>
 
               <hr />
-              <h3>Logos</h3>
               <div className="input-group">
                 <label>Logo du Club</label>
                 <input type="file" accept="image/*" onChange={handleImageUpload('clubLogo')} />
-              </div>
-              <div className="input-group">
-                <label>Logo Partenaire</label>
-                <input type="file" accept="image/*" onChange={handleImageUpload('partners', 0)} />
               </div>
 
               <div style={{ display: 'flex', gap: '0.5rem', marginTop: '1rem' }}>
