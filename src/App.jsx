@@ -11,7 +11,8 @@ const App = () => {
       gridBgColor: 'rgba(30, 41, 59, 0.7)',
       lastNumColor: '#f59e0b',
       gridDrawnColor: '#00d2ff',
-      gridUndrawnColor: 'rgba(255, 255, 255, 0.05)',
+      gridUndrawnColor: 'rgba(30, 41, 59, 0.7)',
+      gridUndrawnTextColor: 'rgba(255, 255, 255, 0.4)',
       autoInterval: 5,
       drawPrep: [],
       useManualInfo: false,
@@ -115,6 +116,21 @@ const App = () => {
     }
   };
 
+  const handlePrevLot = () => {
+    if (config.drawPrep.length === 0) return;
+
+    const prevIdx = config.currentPrepIdx - 1;
+    if (prevIdx >= 0) {
+      setConfig(prev => ({
+        ...prev,
+        currentPrepIdx: prevIdx,
+        useManualInfo: false
+      }));
+    } else {
+      alert("C'est déjà le premier lot !");
+    }
+  };
+
   const handleSurpriseLot = () => {
     setConfig(prev => ({
       ...prev,
@@ -186,7 +202,7 @@ const App = () => {
               className={`number-cell ${isDrawn ? 'drawn' : ''} ${isLast ? 'last-drawn' : ''}`}
               style={{
                 backgroundColor: isDrawn ? (isLast ? config.lastNumColor : config.gridDrawnColor) : (isLast ? 'transparent' : config.gridUndrawnColor),
-                color: isDrawn ? 'white' : 'var(--text-muted)',
+                color: isDrawn ? 'white' : config.gridUndrawnTextColor,
                 borderColor: isLast ? config.lastNumColor : 'transparent'
               }}
             >
@@ -237,6 +253,7 @@ const App = () => {
           {isAutoPlaying ? 'PAUSE' : 'PLAY'}
         </button>
         <button className="btn" style={{ background: '#6366f1', color: 'white' }} onClick={handleUndo}>RETOUR</button>
+        <button className="btn" style={{ background: '#ec4899', color: 'white' }} onClick={handlePrevLot}>LOT PRÉCÉDENT</button>
         <button className="btn" style={{ background: '#ec4899', color: 'white' }} onClick={handleNextLot}>LOT SUIVANT</button>
         <button className="btn" style={{ background: '#8b5cf6', color: 'white' }} onClick={handleSurpriseLot}>LOT SURPRISE</button>
         <button className="btn" style={{ background: '#475569', color: 'white' }} onClick={() => { 
@@ -311,6 +328,10 @@ const App = () => {
                 <div className="input-group">
                   <label>Grille (Non Tiré)</label>
                   <input type="color" value={config.gridUndrawnColor} onChange={e => setConfig({ ...config, gridUndrawnColor: e.target.value })} />
+                </div>
+                <div className="input-group">
+                  <label>Grille (Texte Non Tiré)</label>
+                  <input type="color" value={config.gridUndrawnTextColor} onChange={e => setConfig({ ...config, gridUndrawnTextColor: e.target.value })} />
                 </div>
               </div>
 
