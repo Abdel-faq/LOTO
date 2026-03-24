@@ -208,6 +208,7 @@ const App = () => {
       <section className="grid-section" style={{ backgroundColor: config.gridBgColor }}>
         {Array.from({ length: maxNumbers }, (_, i) => i + 1).map(num => {
           const isDrawn = drawnNumbers.includes(num);
+          const isLast = lastDrawn === num;
           return (
             <div
               key={num}
