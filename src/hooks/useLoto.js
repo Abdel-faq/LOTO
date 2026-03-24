@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 
-export const useLoto = (initialMaxNumber = 90) => {
-  const [maxNumber, setMaxNumber] = useState(initialMaxNumber);
+export const useLoto = (maxNumber = 90) => {
   const [drawnNumbers, setDrawnNumbers] = useState([]);
   const [lastDrawn, setLastDrawn] = useState(null);
   const [isFinished, setIsFinished] = useState(false);

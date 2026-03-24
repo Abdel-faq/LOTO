@@ -20,7 +20,9 @@ const App = () => {
       manualNumber: '1',
       manualType: '1 Ligne',
       manualPrize: '',
-      clubLogo: null
+      clubLogo: null,
+      forceWhiteText: false,
+      zoomLevel: 100
     };
 
     const saved = localStorage.getItem('loto_config');
@@ -181,8 +183,19 @@ const App = () => {
     setIsAdminOpen(false);
   };
 
+  const appStyle = {
+    '--dynamic-bg': config.bgColor,
+    zoom: `${config.zoomLevel || 100}%`
+  };
+  
+  if (config.forceWhiteText) {
+    appStyle['--text-main'] = 'white';
+    appStyle['--text-muted'] = 'white';
+    appStyle['--primary'] = 'white';
+  }
+
   return (
-    <div className="app-container" style={{ '--dynamic-bg': config.bgColor }}>
+    <div className="app-container" style={appStyle}>
       {/* Horizontal History / Recently Drawn */}
       <section className="history-section">
         {drawnNumbers.slice(-10).reverse().map((num, idx) => (
@@ -195,17 +208,16 @@ const App = () => {
       <section className="grid-section" style={{ backgroundColor: config.gridBgColor }}>
         {Array.from({ length: maxNumbers }, (_, i) => i + 1).map(num => {
           const isDrawn = drawnNumbers.includes(num);
-          const isLast = lastDrawn === num;
           return (
             <div
               key={num}
               className={`number-cell ${isDrawn ? 'drawn' : ''} ${isLast ? 'last-drawn' : ''}`}
-              style={{
-                backgroundColor: isDrawn ? (isLast ? config.lastNumColor : config.gridDrawnColor) : (isLast ? 'transparent' : config.gridUndrawnColor),
-                color: isDrawn ? 'white' : config.gridUndrawnTextColor,
-                borderColor: isLast ? config.lastNumColor : 'transparent'
-              }}
-            >
+                style={{
+                  backgroundColor: isDrawn ? (isLast ? config.lastNumColor : config.gridDrawnColor) : (isLast ? 'transparent' : config.gridUndrawnColor),
+                  color: isDrawn ? 'white' : (config.forceWhiteText ? 'white' : config.gridUndrawnTextColor),
+                  borderColor: isLast ? config.lastNumColor : 'transparent'
+                }}
+              >
               {num}
             </div>
           );
@@ -305,9 +317,30 @@ const App = () => {
                     onChange={e => setConfig({ ...config, autoInterval: parseInt(e.target.value) })}
                   />
                 </div>
+                <div className="input-group">
+                  <label>Zoom Projecteur ({config.zoomLevel || 100}%)</label>
+                  <input
+                    type="range"
+                    min="50"
+                    max="200"
+                    step="5"
+                    value={config.zoomLevel || 100}
+                    onChange={e => setConfig({ ...config, zoomLevel: parseInt(e.target.value) })}
+                  />
+                </div>
               </div>
 
-              <h3>Couleurs Personnalisées</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>Couleurs Personnalisées</h3>
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', background: config.forceWhiteText ? '#10b981' : '#475569', color: 'white' }} 
+                  onClick={() => setConfig({ ...config, forceWhiteText: !config.forceWhiteText })}
+                >
+                  {config.forceWhiteText ? 'Écritures Blanches : ACTIF' : 'Écritures Blanches : INACTIF'}
+                </button>
+              </div>
               <div className="color-group">
                 <div className="input-group">
                   <label>Fond</label>
